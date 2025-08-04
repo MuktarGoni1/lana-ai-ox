@@ -43,35 +43,54 @@ function LANALogo({ className }: { className?: string }) {
       >
         <defs>
           <linearGradient id="lana-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
-            <stop offset="50%" stopColor="#ffffff" stopOpacity="0.7" />
-            <stop offset="100%" stopColor="#ffffff" stopOpacity="0.5" />
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
+            <stop offset="50%" stopColor="#ffffff" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#ffffff" stopOpacity="0.6" />
+          </linearGradient>
+          <linearGradient id="inner-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#000000" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#000000" stopOpacity="0.7" />
           </linearGradient>
         </defs>
 
-        {/* Background circle */}
-        <circle cx="16" cy="16" r="15" fill="url(#lana-gradient)" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
+        {/* Outer ring */}
+        <circle cx="16" cy="16" r="15" fill="url(#lana-gradient)" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
 
-        {/* Web symbol - interconnected nodes */}
-        <g fill="rgba(0,0,0,0.8)">
-          {/* Central node */}
-          <circle cx="16" cy="16" r="2" />
+        {/* Neural network inspired design */}
+        <g fill="url(#inner-gradient)">
+          {/* Central core */}
+          <circle cx="16" cy="16" r="3" fill="url(#inner-gradient)" />
 
-          {/* Outer nodes */}
-          <circle cx="8" cy="10" r="1.5" />
-          <circle cx="24" cy="10" r="1.5" />
-          <circle cx="8" cy="22" r="1.5" />
-          <circle cx="24" cy="22" r="1.5" />
+          {/* Neural nodes */}
+          <circle cx="16" cy="8" r="2" />
+          <circle cx="24" cy="16" r="2" />
+          <circle cx="16" cy="24" r="2" />
+          <circle cx="8" cy="16" r="2" />
 
-          {/* Connection lines */}
-          <line x1="16" y1="16" x2="8" y2="10" stroke="rgba(0,0,0,0.6)" strokeWidth="1.5" />
-          <line x1="16" y1="16" x2="24" y2="10" stroke="rgba(0,0,0,0.6)" strokeWidth="1.5" />
-          <line x1="16" y1="16" x2="8" y2="22" stroke="rgba(0,0,0,0.6)" strokeWidth="1.5" />
-          <line x1="16" y1="16" x2="24" y2="22" stroke="rgba(0,0,0,0.6)" strokeWidth="1.5" />
-
-          {/* X overlay */}
-          <path d="M12 12 L20 20 M20 12 L12 20" stroke="rgba(0,0,0,0.8)" strokeWidth="2" strokeLinecap="round" />
+          {/* Smaller connecting nodes */}
+          <circle cx="11" cy="11" r="1.5" />
+          <circle cx="21" cy="11" r="1.5" />
+          <circle cx="21" cy="21" r="1.5" />
+          <circle cx="11" cy="21" r="1.5" />
         </g>
+
+        {/* Connection lines with gradient */}
+        <g stroke="rgba(0,0,0,0.6)" strokeWidth="1.5" fill="none">
+          {/* Primary connections */}
+          <line x1="16" y1="16" x2="16" y2="8" />
+          <line x1="16" y1="16" x2="24" y2="16" />
+          <line x1="16" y1="16" x2="16" y2="24" />
+          <line x1="16" y1="16" x2="8" y2="16" />
+
+          {/* Secondary connections */}
+          <line x1="16" y1="16" x2="11" y2="11" opacity="0.7" />
+          <line x1="16" y1="16" x2="21" y2="11" opacity="0.7" />
+          <line x1="16" y1="16" x2="21" y2="21" opacity="0.7" />
+          <line x1="16" y1="16" x2="11" y2="21" opacity="0.7" />
+        </g>
+
+        {/* Subtle glow effect */}
+        <circle cx="16" cy="16" r="14" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
       </svg>
     </div>
   )

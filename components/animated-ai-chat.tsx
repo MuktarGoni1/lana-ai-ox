@@ -272,6 +272,18 @@ const handleSendMessage = async () => {
     setIsTyping(false);
     setValue("");
     adjustHeight(true);
+=======
+  const handleSendMessage = () => {
+    if (value.trim()) {
+      // Always navigate to video learning page with the user's question
+      const question = value.replace("/video", "").trim() || value.trim()
+      onNavigateToVideoLearning?.(question)
+
+      // Clear the input
+      setValue("")
+      adjustHeight(true)
+    }
+>>>>>>> 6c943187a261c03f3310849864e7a43c08277275
   }
 };          // ← end handleSendMessage
 
