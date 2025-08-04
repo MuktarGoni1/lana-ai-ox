@@ -253,26 +253,6 @@ export function AnimatedAIChat({ onNavigateToVideoLearning }: AnimatedAIChatProp
     }
   }
 
-// inside AnimatedAIChat
-const handleSendMessage = async () => {
-  if (!value.trim()) return;
-
-  setIsTyping(true);
-  try {
-    const res = await fetch("http://localhost:8000/ask", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: value }),
-    });
-    const data = await res.json(); // { text, video_url }
-    onNavigateToVideoLearning?.(data.text);
-  } catch (e) {
-    console.error(e);
-  } finally {
-    setIsTyping(false);
-    setValue("");
-    adjustHeight(true);
-=======
   const handleSendMessage = () => {
     if (value.trim()) {
       // Always navigate to video learning page with the user's question
@@ -283,9 +263,7 @@ const handleSendMessage = async () => {
       setValue("")
       adjustHeight(true)
     }
->>>>>>> 6c943187a261c03f3310849864e7a43c08277275
   }
-};          // ← end handleSendMessage
 
 const handleAttachFile = () => {
   const mockFileName = `file-${Math.floor(Math.random() * 1000)}.pdf`;
