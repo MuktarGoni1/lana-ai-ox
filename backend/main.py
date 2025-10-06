@@ -790,16 +790,32 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RateLimitMiddleware, calls_per_minute=60, calls_per_hour=1000)
 
 # Configure CORS using environment variable ALLOWED_ORIGINS (comma-separated)
-# Defaults to local development origins when not set
+# In development, include the machine's LAN IP to allow access over the network
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS")
+is_prod_env = os.getenv("NODE_ENV", "development").lower() == "production"
+
 if allowed_origins_env:
     allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
 else:
+    # Base defaults for local development
     allowed_origins = [
         "http://localhost:3000",
         "http://localhost:3001",
         "http://127.0.0.1:3000",
     ]
+    # Add LAN IP variants in non-production to support access via network IP
+    if not is_prod_env:
+        try:
+            import socket
+            local_ip = socket.gethostbyname(socket.gethostname())
+            if local_ip and local_ip not in ["127.0.0.1", "0.0.0.0"]:
+                allowed_origins.extend([
+                    f"http://{local_ip}:3000",
+                    f"http://{local_ip}:3001",
+                ])
+        except Exception:
+            # If IP detection fails, proceed with localhost defaults
+            pass
 
 app.add_middleware(
     CORSMiddleware,
@@ -1607,12 +1623,13 @@ async def tts(req: TTSRequest):
     cached_audio = await get_cache(cache_key, namespace="tts")
     if cached_audio:
         logging.info(f"✅ TTS cache hit for key: {cache_key[:16]}...")
+        # NOTE: Do NOT set Content-Encoding to gzip unless actually compressed.
+        # Cached audio is raw WAV; advertise it without misleading encoding.
         return StreamingResponse(
             io.BytesIO(cached_audio), 
             media_type="audio/wav",
             headers={
-                "Cache-Control": "public, max-age=3600",
-                "Content-Encoding": "gzip" if len(cached_audio) < 1024*1024 else "identity"
+                "Cache-Control": "public, max-age=3600"
             }
         )
 
