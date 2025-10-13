@@ -1,150 +1,141 @@
+// components/chat-with-sidebar.tsx
 "use client"
 
-import { useState } from "react"
-import { AnimatedAIChat } from "@/components/animated-ai-chat"
-import { VideoLearningPage } from "@/components/video-learning-page"
+import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
+import { Suspense } from "react"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarTrigger,
+  Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
+  SidebarGroupContent, SidebarGroupLabel, SidebarHeader,
+  SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
+  SidebarProvider, SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { MessageSquare, History, Library, Plus, Clock, Trash2, MoreHorizontal } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { History, Library, Plus, MessageSquare, Settings, Mail, LogIn } from "lucide-react"
+import { uuid } from "@/lib/utils"
+import Logo from "@/components/logo"
+import { useRouter, useSearchParams } from "next/navigation"
+import { apiClient, useApi } from "@/lib/api-client"
+
+// Lazy load heavy components
+const AnimatedAIChat = dynamic(() => import("@/components/animated-ai-chat").then(mod => ({ default: mod.AnimatedAIChat })), {
+  loading: () => (
+    <div className="flex-1 flex items-center justify-center bg-black">
+      <div className="space-y-4 w-full max-w-2xl mx-auto p-6">
+        <Skeleton className="h-16 w-full bg-white/10 rounded-lg" />
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-full bg-white/10" />
+          <Skeleton className="h-4 w-3/4 bg-white/10" />
+          <Skeleton className="h-4 w-1/2 bg-white/10" />
+        </div>
+        <Skeleton className="h-12 w-32 bg-white/10 rounded-lg" />
+      </div>
+    </div>
+  ),
+  ssr: false
+})
+
+const VideoLearningPage = dynamic(() => import("@/components/video-learning-page"), {
+  loading: () => (
+    <div className="flex-1 flex items-center justify-center bg-black">
+      <div className="text-white animate-pulse">Loading Video Learning...</div>
+    </div>
+  ),
+  ssr: false
+})
 
 interface ChatHistory {
   id: string
   title: string
   timestamp: string
-  preview: string
 }
 
-function LANALogo({ className }: { className?: string }) {
-  return (
-    <div className={cn("flex items-center justify-center", className)}>
-      <svg
-        width="32"
-        height="32"
-        viewBox="0 0 32 32"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="text-white"
-      >
-        <defs>
-          <linearGradient id="lana-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
-            <stop offset="50%" stopColor="#ffffff" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#ffffff" stopOpacity="0.6" />
-          </linearGradient>
-          <linearGradient id="inner-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#000000" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#000000" stopOpacity="0.7" />
-          </linearGradient>
-        </defs>
+function ChatWithSidebarContent() {
+  const [view, setView] = useState<"chat" | "video-learning">("chat")
+  const [question, setQuestion] = useState<string>("")
+  const [history, setHistory] = useState<ChatHistory[]>([])
+  const [sid, setSid] = useState<string | null>(null)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  
+  /* 1️⃣ Initialize & persist session id once */
+  useEffect(() => {
+    const id = localStorage.getItem("lana_sid") || uuid()
+    localStorage.setItem("lana_sid", id)
+    setSid(id)
+    
+    // Check for topic parameter from term-plan navigation
+    const topicParam = searchParams.get("topic")
+    if (topicParam) {
+      setQuestion(topicParam)
+      setView("chat")
+      // Clean up URL without causing a page reload
+      window.history.replaceState({}, '', '/')
+    }
+  }, [])
 
-        {/* Outer ring */}
-        <circle cx="16" cy="16" r="15" fill="url(#lana-gradient)" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
-
-        {/* Neural network inspired design */}
-        <g fill="url(#inner-gradient)">
-          {/* Central core */}
-          <circle cx="16" cy="16" r="3" fill="url(#inner-gradient)" />
-
-          {/* Neural nodes */}
-          <circle cx="16" cy="8" r="2" />
-          <circle cx="24" cy="16" r="2" />
-          <circle cx="16" cy="24" r="2" />
-          <circle cx="8" cy="16" r="2" />
-
-          {/* Smaller connecting nodes */}
-          <circle cx="11" cy="11" r="1.5" />
-          <circle cx="21" cy="11" r="1.5" />
-          <circle cx="21" cy="21" r="1.5" />
-          <circle cx="11" cy="21" r="1.5" />
-        </g>
-
-        {/* Connection lines with gradient */}
-        <g stroke="rgba(0,0,0,0.6)" strokeWidth="1.5" fill="none">
-          {/* Primary connections */}
-          <line x1="16" y1="16" x2="16" y2="8" />
-          <line x1="16" y1="16" x2="24" y2="16" />
-          <line x1="16" y1="16" x2="16" y2="24" />
-          <line x1="16" y1="16" x2="8" y2="16" />
-
-          {/* Secondary connections */}
-          <line x1="16" y1="16" x2="11" y2="11" opacity="0.7" />
-          <line x1="16" y1="16" x2="21" y2="11" opacity="0.7" />
-          <line x1="16" y1="16" x2="21" y2="21" opacity="0.7" />
-          <line x1="16" y1="16" x2="11" y2="21" opacity="0.7" />
-        </g>
-
-        {/* Subtle glow effect */}
-        <circle cx="16" cy="16" r="14" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
-      </svg>
-    </div>
-  )
-}
-
-export function ChatWithSidebar() {
-  const [currentView, setCurrentView] = useState<"chat" | "video-learning">("chat")
-  const [currentQuestion, setCurrentQuestion] = useState<string>("")
-  const [activeSection, setActiveSection] = useState<"chat" | "history" | "library">("chat")
-
-  // Mock data for demonstration
-  const chatHistory: ChatHistory[] = [
-    {
-      id: "1",
-      title: "What's an API?",
-      timestamp: "2 hours ago",
-      preview: "Explain what an API is and how it works...",
-    },
-    {
-      id: "2",
-      title: "Explain quantum physics",
-      timestamp: "Yesterday",
-      preview: "Help me understand the basics of quantum physics...",
-    },
-    {
-      id: "3",
-      title: "How does machine learning work?",
-      timestamp: "3 days ago",
-      preview: "Break down machine learning concepts for beginners...",
-    },
-  ]
-
-  const handleNewChat = () => {
-    setCurrentView("chat")
-    setActiveSection("chat")
+  /* 2️⃣ Fetch history whenever sid changes */
+  const api = useApi();
+  
+  const fetchHistory = async () => {
+    if (!sid) return
+    try {
+      // Use cached data if available, bypass cache every 30 seconds
+      const bypassCache = Date.now() % 30000 < 100; // Bypass cache ~every 30 seconds
+      const data = await api.get<ChatHistory[]>(`http://localhost:8000/history?sid=${sid}`, undefined, bypassCache);
+      setHistory(data);
+    } catch (error) {
+      setHistory([]);
+    }
   }
 
-  const handleChatSelect = (chatId: string) => {
-    setCurrentView("chat")
-    setActiveSection("chat")
+  useEffect(() => {
+    if (sid) fetchHistory()
+    
+    // Set up periodic refresh of history data
+    const refreshInterval = setInterval(() => {
+      if (sid) fetchHistory();
+    }, 30000); // Refresh every 30 seconds
+    
+    return () => clearInterval(refreshInterval);
+  }, [sid])
+
+  /* 3️⃣ Action handlers */
+  const handleNewChat = async () => {
+    if (!sid) return
+    try {
+      await api.post("http://localhost:8000/reset", { sid });
+      // Clear any cached history data
+      apiClient.clearCache();
+      await fetchHistory();
+      setView("chat");
+    } catch (error) {
+      console.error("Failed to reset chat:", error);
+    }
   }
 
-  const handleNavigateToVideoLearning = (question: string) => {
-    setCurrentQuestion(question)
-    setCurrentView("video-learning")
+  const handleSelect = (title: string) => {
+    setQuestion(title)
+    setView("video-learning")
   }
 
-  const handleBackToChat = () => {
-    setCurrentView("chat")
+  const handleBack = () => {
+    setView("chat")
+    fetchHistory()
   }
 
-  if (currentView === "video-learning") {
-    return <VideoLearningPage question={currentQuestion} onBack={handleBackToChat} />
+  /* 4️⃣ Routing */
+  if (view === "video-learning") {
+    return (
+      <VideoLearningPage
+        question={question}
+        onBack={handleBack}
+      />
+    )
   }
+
+  /* 5️⃣ Nothing renders until sid is ready */
+  if (!sid) return null
 
   return (
     <SidebarProvider>
@@ -152,21 +143,16 @@ export function ChatWithSidebar() {
         <SidebarHeader className="border-b border-white/10">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton
-                size="lg"
-                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-              >
-                <LANALogo className="flex-shrink-0" />
-                <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold text-white">LANA AI</span>
-                </div>
+              <SidebarMenuButton size="lg">
+                <Logo className="w-24 h-24 md:w-14 md:h-14" />
+                <span className="font-semibold text-white">LANA AI</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
 
         <SidebarContent className="gap-0">
-          {/* New Chat Section */}
+          {/* New Chat */}
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -183,7 +169,7 @@ export function ChatWithSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
 
-          {/* History Section */}
+          {/* Live History */}
           <SidebarGroup>
             <SidebarGroupLabel className="text-white/70 flex items-center gap-2">
               <History className="size-4" />
@@ -191,38 +177,18 @@ export function ChatWithSidebar() {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {chatHistory.map((chat) => (
+                {history.length === 0 && (
+                  <SidebarMenuItem>
+                    <span className="text-xs text-white/50 px-2">No history yet</span>
+                  </SidebarMenuItem>
+                )}
+                {(Array.isArray(history) ? history : []).map((chat) => (
                   <SidebarMenuItem key={chat.id}>
                     <SidebarMenuButton
-                      onClick={() => handleChatSelect(chat.id)}
-                      className="flex-col items-start gap-1 h-auto py-2 text-white/80 hover:text-white hover:bg-white/5"
+                      onClick={() => handleSelect(chat.title)}
+                      className="items-start py-2 text-white/80 hover:text-white hover:bg-white/5"
                     >
-                      <div className="flex items-center justify-between w-full">
-                        <span className="font-medium text-sm truncate">{chat.title}</span>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 text-white/40 hover:text-white/80"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreHorizontal className="size-3" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-black/90 border-white/10">
-                            <DropdownMenuItem className="text-white/80 hover:text-white">
-                              <Trash2 className="size-3 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                      <div className="flex items-center gap-2 w-full">
-                        <Clock className="size-3 text-white/40" />
-                        <span className="text-xs text-white/40">{chat.timestamp}</span>
-                      </div>
-                      <p className="text-xs text-white/50 line-clamp-2 text-left">{chat.preview}</p>
+                      <span className="font-medium text-sm truncate">{chat.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -230,22 +196,57 @@ export function ChatWithSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
 
-          {/* Library Section - Empty */}
+          {/* Library placeholder */}
           <SidebarGroup>
             <SidebarGroupLabel className="text-white/70 flex items-center gap-2">
               <Library className="size-4" />
               Library
             </SidebarGroupLabel>
-            <SidebarGroupContent>{/* Empty - ready for future content */}</SidebarGroupContent>
+            <SidebarGroupContent />
           </SidebarGroup>
         </SidebarContent>
 
+        {/* Footer actions */}
         <SidebarFooter className="border-t border-white/10">
           <SidebarMenu>
+            {/* Feedback */}
             <SidebarMenuItem>
-              <SidebarMenuButton className="text-white/60 hover:text-white/80">
+              <SidebarMenuButton className="text-white/60 hover:text-white/80 w-full justify-start gap-2">
                 <MessageSquare className="size-4" />
                 <span className="text-sm">Feedback</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            {/* Settings */}
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => router.push("/settings")}
+                className="text-white/60 hover:text-white/80 w-full justify-start gap-2"
+              >
+                <Settings className="size-4" />
+                <span className="text-sm">Settings</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            {/* Parent Dashboard */}
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => router.push("/guardian")}
+                className="text-white/60 hover:text-white w-full justify-start gap-2"
+              >
+                <Mail className="w-4 h-4" />
+                <span className="text-sm">Parent Dashboard</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            {/* Log in */}
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => router.push("/login")}
+                className="text-white/60 hover:text-white w-full justify-start gap-2"
+              >
+                <LogIn className="w-4 h-4" />
+                <span className="text-sm">Log in</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -256,14 +257,43 @@ export function ChatWithSidebar() {
         <header className="flex h-12 shrink-0 items-center gap-2 border-b border-white/10 px-4">
           <SidebarTrigger className="text-white/60 hover:text-white" />
           <div className="flex items-center gap-2 text-sm text-white/60">
-            <LANALogo className="w-6 h-6" />
             <span>LANA AI</span>
           </div>
         </header>
         <div className="flex-1">
-          <AnimatedAIChat onNavigateToVideoLearning={handleNavigateToVideoLearning} />
+          {view === "chat" ? (
+            <Suspense fallback={
+              <div className="flex-1 flex items-center justify-center bg-black">
+                <div className="text-white animate-pulse">Loading Chat...</div>
+              </div>
+            }>
+              <AnimatedAIChat
+                onNavigateToVideoLearning={handleSelect}
+                onSend={fetchHistory}
+              />
+            </Suspense>
+          ) : (
+            <Suspense fallback={
+              <div className="flex-1 flex items-center justify-center bg-black">
+                <div className="text-white animate-pulse">Loading Video Learning...</div>
+              </div>
+            }>
+              <VideoLearningPage
+                question={question}
+                onBack={handleBack}
+              />
+            </Suspense>
+          )}
         </div>
       </SidebarInset>
     </SidebarProvider>
+  )
+}
+
+export default function ChatWithSidebar() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center">Loading...</div>}>
+      <ChatWithSidebarContent />
+    </Suspense>
   )
 }
