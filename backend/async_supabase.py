@@ -30,10 +30,11 @@ class AsyncSupabaseClient:
         """Get or create PostgreSQL connection pool for direct database access"""
         if self._connection_pool is None:
             try:
-                # Extract database URL from Supabase URL
-                db_url = self.url.replace('https://', 'postgresql://postgres:')
-                # Add service role key as password and database details
-                db_url = f"postgresql://postgres:{self.key.split('.')[0]}@{self.url.split('//')[1]}/postgres"
+                # Use separate database credentials from environment
+                db_url = os.getenv("DATABASE_URL")
+                if not db_url:
+                    print("⚠️ DATABASE_URL not set, skipping PostgreSQL connection pool")
+                    return None
                 
                 self._connection_pool = await asyncpg.create_pool(
                     db_url,
@@ -47,6 +48,7 @@ class AsyncSupabaseClient:
                         'tcp_keepalives_count': '3',
                     }
                 )
+                print("✅ PostgreSQL connection pool created successfully")
             except Exception as e:
                 print(f"⚠️ Failed to create PostgreSQL connection pool: {e}")
                 return None

@@ -464,6 +464,9 @@ POPULAR_TOPICS = [
     "database design", "cybersecurity", "cloud computing", "blockchain"
 ]
 
+# Precompute popular topics set for O(1) lookup
+POPULAR_TOPICS_SET = {topic.lower() for topic in POPULAR_TOPICS}
+
 async def precompute_popular_topics():
     """Precompute responses for popular topics with cache warming"""
     warm_data = {}
@@ -514,58 +517,13 @@ async def precompute_popular_topics():
 async def process_lesson_content(content: str, topic: str) -> Optional[Dict[str, Any]]:
     """Process and validate lesson content with better error handling"""
     try:
-        # Clean and extract JSON from content
-        content = content.strip()
-        
-        # Find JSON block if wrapped in markdown
-        if '```json' in content:
-            start = content.find('```json') + 7
-            end = content.find('```', start)
-            if end != -1:
-                content = content[start:end].strip()
-        elif '```' in content:
-            start = content.find('```') + 3
-            end = content.find('```', start)
-            if end != -1:
-                content = content[start:end].strip()
-        
-        # Try to find JSON object boundaries
-        if not (content.startswith('{') and content.endswith('}')):
-            # Look for the first { and last }
-            start_idx = content.find('{')
-            end_idx = content.rfind('}')
-            if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-                content = content[start_idx:end_idx + 1]
-        
-        # Remove any leading/trailing non-JSON characters
-        if content.startswith('{') and content.endswith('}'):
-            try:
-                data = orjson.loads(content)
-                return data
-            except orjson.JSONDecodeError as e:
-                logging.warning(f"JSON parse error for {topic}: {e}")
-                # Try to fix common JSON issues
-                import re
-                
-                # Remove control characters that cause JSON parsing issues
-                content = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', content)
-                
-                # Fix common escape sequence issues
-                content = content.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
-                
-                # Remove trailing commas before closing braces/brackets
-                content = re.sub(r',(\s*[}\]])', r'\1', content)
-                
-                try:
-                    data = orjson.loads(content)
-                    return data
-                except orjson.JSONDecodeError as e2:
-                    logging.error(f"Failed to parse JSON for {topic} after cleanup: {e2}")
-                    return None
-        return None
+        # Use the centralized sanitization utility
+        fallback = create_fallback_lesson(topic)
+        data = sanitize_and_parse_json(content, fallback)
+        return data if data else fallback
     except Exception as e:
         logging.error(f"Content processing error for {topic}: {e}")
-        return None
+        return create_fallback_lesson(topic)
 
 def create_fallback_lesson(topic: str) -> Dict[str, Any]:
     """Create fallback lesson structure for failed generations"""
@@ -577,11 +535,13 @@ def create_fallback_lesson(topic: str) -> Dict[str, Any]:
     }
 
 def clean_and_extract_json(content: str) -> str:
-    """Clean and extract JSON from content"""
-    # Clean and extract JSON from content
-    content = content.strip()
+    """Clean and extract JSON from content - DEPRECATED: Use sanitize_and_parse_json instead"""
+    # This function is kept for backward compatibility but should not be used
+    # Use sanitize_and_parse_json() for all new code
+    import warnings
+    warnings.warn("clean_and_extract_json is deprecated, use sanitize_and_parse_json", DeprecationWarning)
     
-    # Find JSON block if wrapped in markdown
+    content = content.strip()
     if '```json' in content:
         start = content.find('```json') + 7
         end = content.find('```', start)
@@ -593,47 +553,18 @@ def clean_and_extract_json(content: str) -> str:
         if end != -1:
             content = content[start:end].strip()
     
-    # Try to find JSON object boundaries
     if not (content.startswith('{') and content.endswith('}')):
-        # Look for the first { and last }
         start_idx = content.find('{')
         end_idx = content.rfind('}')
         if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
             content = content[start_idx:end_idx + 1]
     
-    # Remove any leading/trailing non-JSON characters
-    if content.startswith('{') and content.endswith('}'):
-        return content
-    
     return content
 
 def parse_lesson_content(content: str, topic: str) -> Dict[str, Any]:
-    """Parse lesson content with error handling"""
-    try:
-        data = orjson.loads(content)
-    except orjson.JSONDecodeError as e:
-        logging.warning(f"JSON parse error for {topic}: {e}")
-        # Try to fix common JSON issues
-        import re
-        
-        # Remove control characters that cause JSON parsing issues
-        content = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', content)
-        
-        # Fix common escape sequence issues
-        content = content.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
-        
-        # Remove trailing commas before closing braces/brackets
-        content = re.sub(r',(\s*[}\]])', r'\1', content)
-        
-        try:
-            data = orjson.loads(content)
-        except orjson.JSONDecodeError as e2:
-            logging.error(f"Failed to parse JSON for {topic} after cleanup: {e2}")
-            logging.error(f"Problematic content: {content[:200]}...")
-            # Create fallback data structure
-            data = create_fallback_lesson(topic)
-    
-    return data
+    """Parse lesson content with error handling - uses centralized utility"""
+    fallback = create_fallback_lesson(topic)
+    return sanitize_and_parse_json(content, fallback)
 
 # ---------- Cache Management Functions ----------
 async def get_cached_lesson(cache_key: str, topic: str) -> Optional[Dict[str, Any]]:
@@ -871,11 +802,19 @@ def validate_topic(topic: str) -> str:
         r'on\w+\s*=',
         r'data:text/html',
         r'vbscript:',
+        r'\$\{.*\}',  # Template injection
+        r'<%.*%>',  # Server-side template injection
+        r'\{\{.*\}\}',  # Template injection
     ]
     
     for pattern in dangerous_patterns:
         if re.search(pattern, topic, re.IGNORECASE):
             raise ValueError("Topic contains potentially dangerous content")
+    
+    # Prevent excessive special characters
+    special_char_count = sum(1 for c in topic if not c.isalnum() and not c.isspace())
+    if special_char_count > len(topic) * 0.3:  # More than 30% special chars
+        raise ValueError("Topic contains too many special characters")
     
     return topic
 
@@ -1050,23 +989,111 @@ Rules:
 - If word problem: define variables, set up equation(s), solve, and verify.
 - Output only valid JSON (no markdown, no commentary)."""
 
+# ---------- Reset chat endpoint ----------
+@app.post("/reset")
+async def reset_chat(request: dict):
+    """Reset chat session"""
+    sid = request.get("sid")
+    if not sid:
+        raise HTTPException(status_code=400, detail="Session ID is required")
+    
+    # Clear session-specific cache
+    try:
+        cache_key = f"history_{sid}"
+        # Invalidate history cache for this session
+        await set_cache(cache_key, None, ttl=1, namespace="history")
+        
+        return {"status": "success", "message": "Chat reset successfully"}
+    except Exception as e:
+        logging.error(f"Reset chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ---------- Helper functions ----------
+def sanitize_and_parse_json(content: str, fallback_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """
+    Sanitize and parse JSON content with robust error handling.
+    
+    Args:
+        content: Raw content that may contain JSON
+        fallback_data: Optional fallback data if parsing fails
+        
+    Returns:
+        Parsed JSON dictionary or fallback data
+    """
+    if not content:
+        return fallback_data or {}
+    
+    content = content.strip()
+    
+    # Find JSON block if wrapped in markdown
+    if '```json' in content:
+        start = content.find('```json') + 7
+        end = content.find('```', start)
+        if end != -1:
+            content = content[start:end].strip()
+    elif '```' in content:
+        start = content.find('```') + 3
+        end = content.find('```', start)
+        if end != -1:
+            content = content[start:end].strip()
+    
+    # Try to find JSON object boundaries
+    if not (content.startswith('{') and content.endswith('}')):
+        start_idx = content.find('{')
+        end_idx = content.rfind('}')
+        if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+            content = content[start_idx:end_idx + 1]
+    
+    # First parsing attempt
+    try:
+        return orjson.loads(content)
+    except orjson.JSONDecodeError:
+        pass
+    
+    # Sanitize and retry (suppress individual warnings, will log once if both fail)
+    try:
+        # Remove control characters
+        content = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', content)
+        # Fix escape sequences
+        content = content.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+        # Remove trailing commas
+        content = re.sub(r',(\s*[}\]])', r'\1', content)
+        
+        return orjson.loads(content)
+    except orjson.JSONDecodeError as e:
+        # Only log if we have no fallback (more serious issue)
+        if fallback_data is None:
+            logging.error(f"JSON parsing failed with no fallback: {e}")
+            logging.debug(f"Problematic content: {content[:200]}...")
+        else:
+            # Just debug level since we have a working fallback
+            logging.debug(f"JSON parse recovered with fallback: {str(e)[:50]}...")
+        return fallback_data or {}
+
 # ---------- Helper functions ----------
 # Smart cache key with fuzzy matching
-@lru_cache(maxsize=100)  # Cache the cache key generation itself
+@lru_cache(maxsize=500)  # Increased cache size for better hit rate
 def get_smart_cache_key(topic: str) -> str:
     """Generate cache key with fuzzy matching for similar topics"""
     topic_lower = topic.lower().strip()
     
-    # Check for exact precomputed match
+    # Check for exact precomputed match (O(1) lookup)
     if topic_lower in precomputed_cache:
         return f"precomputed:{topic_lower}"
     
-    # Check for partial matches in popular topics (optimized)
+    # Check for exact match in popular topics (O(1) lookup)
+    if topic_lower in POPULAR_TOPICS_SET:
+        return f"precomputed:{topic_lower}"
+    
+    # Check for partial matches using set operations
+    topic_words = set(topic_lower.split())
     for popular in POPULAR_TOPICS:
-        popular_lower = popular.lower()
-        if popular_lower in topic_lower or topic_lower in popular_lower:
-            if popular_lower in precomputed_cache:
-                return f"precomputed:{popular_lower}"
+        popular_words = set(popular.lower().split())
+        # Check if there's significant word overlap
+        overlap = len(topic_words & popular_words)
+        if overlap > 0 and (overlap / len(topic_words) > 0.5 or overlap / len(popular_words) > 0.5):
+            if popular.lower() in precomputed_cache:
+                return f"precomputed:{popular.lower()}"
     
     # Standard cache key with better hashing
     return f"topic:{hashlib.md5(topic_lower.encode()).hexdigest()[:16]}"  # Shorter hash

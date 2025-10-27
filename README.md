@@ -1,30 +1,101 @@
-# WebX Ui
+# LANA AI Platform
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+AI-powered educational platform providing personalized, age-appropriate learning experiences for students with parental oversight.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/muktargoni1-3886s-projects/v0-web-x-ui)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/qg2TXVbq8Wx)
+## 🎯 Project Overview
 
-## Overview
+LANA AI is a full-stack application consisting of:
+- **Frontend**: Next.js 14 application with modern UI
+- **Backend**: FastAPI service with AI integration
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+## 🚀 Quick Start
 
-## Deployment
+### Prerequisites
+- Node.js 18+ 
+- Python 3.10+
+- npm or yarn
+- Supabase account
+- Groq API key
+- Google AI API key
 
-Your project is live at:
+### Development Setup
 
-**[https://vercel.com/muktargoni1-3886s-projects/v0-web-x-ui](https://vercel.com/muktargoni1-3886s-projects/v0-web-x-ui)**
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd lana-ai-ox
+   ```
 
-## Build your app
+2. **Set up Frontend:**
+   ```bash
+   cd frontend
+   npm install
+   cp .env.example .env.local
+   # Edit .env.local with your values
+   npm run dev
+   ```
 
-Continue building your app on:
+3. **Set up Backend (in new terminal):**
+   ```bash
+   cd backend
+   python -m venv venv
+   source venv/bin/activate  # Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   cp .env.example .env
+   # Edit .env with your API keys
+   python main.py
+   ```
 
-**[https://v0.dev/chat/projects/qg2TXVbq8Wx](https://v0.dev/chat/projects/qg2TXVbq8Wx)**
+4. **Access the application:**
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:8000
+   - API Docs: http://localhost:8000/docs
 
-## How It Works
+## 📂 Project Structure
 
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+```
+lana-ai-ox/
+├── frontend/           # Next.js application
+│   ├── app/           # Pages (App Router)
+│   ├── components/    # React components
+│   ├── lib/           # Utilities
+│   └── ...
+├── backend/           # FastAPI service
+│   ├── main.py       # Main application
+│   └── ...
+└── README.md         # This file
+```
+
+## 🎓 Core Features
+
+- **AI Chat Interface** - Structured lesson generation
+- **Quiz System** - Interactive quizzes with scoring
+- **Term Planner** - Study organization
+- **Text-to-Speech** - Audio learning
+- **Parent Dashboard** - Progress monitoring
+- **Age-Appropriate Content** - Personalized for ages 5-18+
+
+## 🛠️ Technology Stack
+
+### Frontend
+- Next.js 14, TypeScript, Tailwind CSS
+- Radix UI, Framer Motion
+- Supabase Auth
+
+### Backend
+- FastAPI, Python
+- Groq (Llama 3.1), Google Gemini
+- Supabase, Redis
+
+## 📖 Documentation
+
+- [Frontend Documentation](./frontend/README.md)
+- [Backend Documentation](./backend/README.md)
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read our contributing guidelines first.
+
+## 📄 License
+
+[Your License Here]
