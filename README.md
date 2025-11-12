@@ -1,30 +1,25 @@
-# WebX Ui
+Your Personalized AI Lesson Tutor
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+Lana AI is an intelligent learning assistant that adapts to every student’s level of understanding.
+It delivers simple, structured, and clear explanations, creates lesson plans, and generates performance reports directly for parents or guardians.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/muktargoni1-3886s-projects/v0-web-x-ui)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/qg2TXVbq8Wx)
+Each learner is paired with a personalized AI tutor — an explainer that helps them grasp difficult concepts, stay consistent, and improve faster.
 
-## Overview
+Core Features:
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+Personalized lessons tailored to each learner’s pace.
 
-## Deployment
+Clear, structured explanations for better understanding.
 
-Your project is live at:
+Automatic progress reports sent to parents.
 
-**[https://vercel.com/muktargoni1-3886s-projects/v0-web-x-ui](https://vercel.com/muktargoni1-3886s-projects/v0-web-x-ui)**
+AI tutor/avatar that engages and motivates students.
 
-## Build your app
 
-Continue building your app on:
-
-**[https://v0.dev/chat/projects/qg2TXVbq8Wx](https://v0.dev/chat/projects/qg2TXVbq8Wx)**
-
-## How It Works
-
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+Vision:
+To make learning personal, intelligent, and transparent — helping every child learn better, and every parent stay connected to their progress.
+  🚀 Tech Stack
+- **Frontend:** Next.js + Tailwind CSS  
+- **Backend:** FastAPI + Supabase  
+- **AI Layer:** llama 
+- **Deployment:** Render
