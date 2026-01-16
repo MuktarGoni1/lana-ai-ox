@@ -161,3 +161,14 @@ coverage/
 # Build artifacts
 dist/
 build/
+
+# Next.js build artifacts
+frontend/.next/
+.next/
+out/
+
+# Compiled Python files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
